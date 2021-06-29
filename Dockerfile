@@ -15,7 +15,7 @@
  WORKDIR /home/Gossip
 
  # 将当前目录加入到工作目录中（. 表示当前目录）
- ADD . /home/Gossip
+ COPY . /home/Gossip
 
  # 更新pip版本
  RUN /usr/local/bin/python -m pip install --upgrade pip
