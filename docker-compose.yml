@@ -3,7 +3,7 @@ services:
   web:
     build: . # 使用myproject目录下的Dockerfile
     expose:
-      - "8088"
+      - "443"
     volumes:
       - .:/home/Gossip # 挂载项目代码
     environment:
@@ -11,3 +11,5 @@ services:
     restart: always
     tty: true
     stdin_open: true
+    ports:
+      - "443:443"
