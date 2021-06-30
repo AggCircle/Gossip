@@ -1,6 +1,7 @@
 version: '3'
 services:
   web:
+    container_name: web_gossip
     build: . # 使用myproject目录下的Dockerfile
     volumes:
       - .:/home/Gossip # 挂载项目代码
