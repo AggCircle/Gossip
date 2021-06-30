@@ -12,4 +12,7 @@
 #openssl genrsa -out foobar.key 2048&&
 #openssl req -new -key foobar.key -out foobar.csr&&
 #openssl x509 -req -days 365 -in foobar.csr -signkey foobar.key -out foobar.crt&&
+python manage.py makemigrations&&
+python manage.py migrate&&
 uwsgi --ini /home/Gossip/uwsgi.ini
+#python manage.py runserver 0.0.0.0:8088
