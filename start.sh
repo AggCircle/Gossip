@@ -14,5 +14,8 @@
 #openssl x509 -req -days 365 -in foobar.csr -signkey foobar.key -out foobar.crt&&
 python manage.py makemigrations&&
 python manage.py migrate&&
-uwsgi --ini /home/Gossip/uwsgi.ini
+cd /home/Gossip
+uwsgi --ini uwsgi.ini
+
+tail -f /dev/null
 #python manage.py runserver 0.0.0.0:8088

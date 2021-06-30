@@ -25,3 +25,5 @@ RUN pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 # 给start.sh可执行权限
 RUN chmod +x ./start.sh
+
+ENTRYPOINT ["sh","/home/Gossip/start.sh"]

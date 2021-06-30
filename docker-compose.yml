@@ -2,12 +2,8 @@ version: '3'
 services:
   web:
     build: . # 使用myproject目录下的Dockerfile
-    expose:
-      - "8088"
     volumes:
       - .:/home/Gossip # 挂载项目代码
-    environment:
-      - DEBUG=False
     restart: always
     tty: true
     stdin_open: true
