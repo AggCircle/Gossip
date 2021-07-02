@@ -5,6 +5,8 @@ import requests
 
 from django.http import JsonResponse
 
+from .models import UserWx
+
 
 logger = logging.getLogger("server_logger")
 
@@ -84,3 +86,33 @@ def get_eight_characters(request):
         logger.error(f'Get calendar error: {e}')
 
     return JsonResponse({'code': 1, 'msg': 'error'})
+
+
+def create_wx_user(request):
+    json_template = {}
+    res = request.body
+    try:
+        # 空格判断
+        wx_info = json.loads(res)
+        wx_user_info = wx_info['user_info']
+        if UserWx.objects.filter(avatar_url=wx_user_info['avatarUrl']):
+            json_template['code'] = 96
+            json_template['errMessage'] = '用户已存在，无需重复添加'
+        else:
+            wx_user = {
+                'nick_name': wx_user_info['nickName'],
+                'gender': wx_user_info['gender'],
+                'avatar_url': wx_user_info['avatarUrl'],
+                'city': wx_user_info['city'],
+                'province': wx_user_info['province'],
+                'country': wx_user_info['country']
+            }
+            user_wx = UserWx(**wx_user)
+            user_wx.save()
+            json_template['code'] = 0
+            json_template['errMessage'] = '添加成功'
+        return JsonResponse(json_template)
+    except Exception as e:
+        logger.error(str(e))
+        json_template['errMessage'] = str(e)
+        return JsonResponse(json_template)
