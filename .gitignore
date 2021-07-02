@@ -3,6 +3,9 @@
 *.iml
 *.idea
 *.log
+*.csr
+*.key
+*.pid
 lzh_setting.py
 
 migrations/
