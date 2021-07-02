@@ -26,6 +26,7 @@ ny_wx = {'甲子': '海中金', '乙丑': '海中金', '丙寅': '炉中火', '�
          '丙午': '天河水', '丁未': '天河水', '戊申': '大驿土', '己酉': '大驿土', '庚戌': '钗钏金', '辛亥': '钗钏金',
          '壬子': '桑拓木', '癸丑': '桑拓木', '甲寅': '大溪水', '乙卯': '大溪水', '丙辰': '沙中土', '丁巳': '沙中土',
          '戊午': '天上火', '己未': '天上火', '庚申': '石榴木', '辛酉': '石榴木', '壬戌': '大海水', '癸亥': '大海水'}
+wx = ['金', '木', '水', '火', '土']
 
 
 def get_hour_branch(suici, hour):
@@ -40,7 +41,23 @@ def get_hour_branch(suici, hour):
 def get_wx_sz(all_suici):
     sz = f'{wx_gz[all_suici[0]]}{wx_gz[all_suici[1]]} {wx_gz[all_suici[5]]}{wx_gz[all_suici[6]]}' \
          f' {wx_gz[all_suici[9]]}{wx_gz[all_suici[10]]} {wx_gz[all_suici[13]]}{wx_gz[all_suici[14]]}'
-    return sz
+    wu_x = [wx_gz[all_suici[0]], wx_gz[all_suici[1]], wx_gz[all_suici[5]], wx_gz[all_suici[6]], wx_gz[all_suici[9]],
+          wx_gz[all_suici[10]], wx_gz[all_suici[13]], wx_gz[all_suici[14]]]
+    wu_x = list(set(wu_x))
+    if len(wu_x) == 5:
+        analyse = '您八字中五行诸全，五行不缺'
+    else:
+        str_wx = ''
+        for i in wx:
+            if i in wu_x:
+                continue
+            else:
+                if str_wx:
+                    str_wx = str_wx + '和' + i
+                else:
+                    str_wx = i
+        analyse = f'您八字中的五行缺{str_wx}'
+    return sz, analyse
 
 
 def get_eight_characters(request):
@@ -54,13 +71,14 @@ def get_eight_characters(request):
         suici = res_dic['html']['suici']
         hour_gz = get_hour_branch(suici, hour)
         suici_all = f'{suici} {hour_gz}时'
-        sz = get_wx_sz(suici_all)
+        sz, analyse = get_wx_sz(suici_all)
 
         data = {'gongli':res_dic['html']['gongli'],
                 'nongli': res_dic['html']['nongli'],
                 'suici': suici_all, 'sz': sz,
                 'rg': sz[6],
-                'ny': ny_wx[suici[:2]]}
+                'ny': ny_wx[suici[:2]],
+                'analyse': analyse}
         return JsonResponse({'code': 0, 'msg': 'success', 'data': data})
     except Exception as e:
         logger.error(f'Get calendar error: {e}')
