@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib import admin
 
 
 # Create your models here.
@@ -16,7 +17,20 @@ class UserWx(models.Model):
     class Meta:
         db_table = "user_wx"
         verbose_name = "小程序用户信息"
-        verbose_name_plural = "小程序用户信息"
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.nick_name
+
+
+class UserWxAdmin(admin.ModelAdmin):
+    def set_gender(self):
+        if self.gender == '1':
+            return '男'
+        elif self.gender == '2':
+            return '女'
+        else:
+            return '未知'
+
+    set_gender.short_description = '性别'
+    list_display = ('id', 'nick_name', 'create_time', 'set_gender', 'avatar_url', 'city')
