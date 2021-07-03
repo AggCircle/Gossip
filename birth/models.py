@@ -2,12 +2,14 @@ from django.db import models
 from django.contrib import admin
 
 
+SEX_CHOICE = ((u'0', "未知"), (u'1', "男"), (u'2', "女"))
+
 # Create your models here.
 class UserWx(models.Model):
     id = models.AutoField(primary_key=True)
     create_time = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
     nick_name = models.CharField(verbose_name="昵称", max_length=100, null=True)
-    gender = models.CharField(verbose_name="性别", max_length=1, null=True)
+    gender = models.CharField(verbose_name="性别", max_length=1, null=True, choices=SEX_CHOICE)
     avatar_url = models.CharField(verbose_name="头像", max_length=300, null=True)
     city = models.CharField(verbose_name="城市", max_length=30, null=True)
     province = models.CharField(verbose_name="省份", max_length=30, null=True)
@@ -24,13 +26,4 @@ class UserWx(models.Model):
 
 
 class UserWxAdmin(admin.ModelAdmin):
-    def set_gender(self):
-        if self.gender == '1':
-            return '男'
-        elif self.gender == '2':
-            return '女'
-        else:
-            return '未知'
-
-    set_gender.short_description = '性别'
-    list_display = ('id', 'nick_name', 'create_time', 'set_gender', 'avatar_url', 'city')
+    list_display = ('id', 'nick_name', 'create_time', 'gender', 'avatar_url', 'city')
