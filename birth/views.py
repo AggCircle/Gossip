@@ -3,12 +3,14 @@ import json
 import logging
 import requests
 
+import concurrent.futures as my_futures
 from django.http import JsonResponse
 
-from .models import UserWx
+from .models import UserWx, UserDetailInfo
 
 
 logger = logging.getLogger("server_logger")
+executor = my_futures.ThreadPoolExecutor(max_workers=5)
 
 
 ten_heavenly = {1: '甲', 2: '乙', 3: '丙', 4: '丁', 5: '戊', 6: '己', 7: '庚', 8: '辛', 9: '壬', 10: '癸'}
@@ -62,8 +64,26 @@ def get_wx_sz(all_suici):
     return sz, analyse
 
 
+def insert_birth(user_info):
+    logger.info('insert is in')
+    user_wx = UserWx.objects.filter(avatar_url=user_info.get('avatarUrl') or '')
+    if user_wx:
+        user_detail_info = {
+            'user_wx': user_wx[0],
+            'birth_datetime': user_info['birth']
+        }
+        user_detail = UserDetailInfo(**user_detail_info)
+        user_detail.save()
+
+
 def get_eight_characters(request):
     birth = request.GET.get('birth')  # 生日datetime类型 ‘1991-10-21 21:14:04’
+    user_info = request.GET.get('user_info') or '{}'
+    user_info = json.loads(user_info)
+
+    user_info['birth'] = birth
+    executor.submit(insert_birth, user_info)
+
     birth_datetime = datetime.datetime.strptime(birth, "%Y-%m-%d %H:%M:%S")
     hour = birth_datetime.hour
     date = birth.split(' ')[0].replace('-', '')
@@ -75,7 +95,7 @@ def get_eight_characters(request):
         suici_all = f'{suici} {hour_gz}时'
         sz, analyse = get_wx_sz(suici_all)
 
-        data = {'gongli':res_dic['html']['gongli'],
+        data = {'gongli': res_dic['html']['gongli'],
                 'nongli': res_dic['html']['nongli'],
                 'suici': suici_all, 'sz': sz,
                 'rg': sz[6],
