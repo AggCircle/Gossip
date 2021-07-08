@@ -6,7 +6,7 @@ import requests
 import concurrent.futures as my_futures
 from django.http import JsonResponse
 
-from .models import UserWx, UserDetailInfo
+from .models import UserWx, UserDetailInfo, UserComments, LeaveMessage
 
 
 logger = logging.getLogger("server_logger")
@@ -66,28 +66,25 @@ def get_wx_sz(all_suici):
 
 def insert_birth(user_info):
     logger.info('insert is in')
-    user_wx = UserWx.objects.filter(avatar_url=user_info.get('avatarUrl') or '')
-    if user_wx:
-        user_detail_info = {
-            'user_wx': user_wx[0],
-            'birth_datetime': user_info['birth']
-        }
-        user_detail = UserDetailInfo(**user_detail_info)
-        user_detail.save()
+    user_wx_obj = UserWx.objects.filter(open_id=(user_info.get('open_id') or ''))
+    if user_wx_obj:
+        UserDetailInfo.objects.create(user_wx=user_wx_obj[0], birth_datetime=user_info['birth'])
 
 
 def get_eight_characters(request):
     birth = request.GET.get('birth')  # 生日datetime类型 ‘1991-10-21 21:14:04’
     user_info = request.GET.get('user_info') or '{}'
     user_info = json.loads(user_info)
+    open_id = request.GET.get('open_id')
 
     user_info['birth'] = birth
-    executor.submit(insert_birth, user_info)
+    user_info['open_id'] = open_id
 
     birth_datetime = datetime.datetime.strptime(birth, "%Y-%m-%d %H:%M:%S")
     hour = birth_datetime.hour
     date = birth.split(' ')[0].replace('-', '')
     try:
+        executor.submit(insert_birth, user_info)
         res = requests.get(f'http://tools.2345.com/frame/api/GetLunarInfo?date={date}')
         res_dic = json.loads(res.text)
         suici = res_dic['html']['suici']
@@ -105,7 +102,7 @@ def get_eight_characters(request):
     except Exception as e:
         logger.error(f'Get calendar error: {e}')
 
-    return JsonResponse({'code': 1, 'msg': 'error'})
+    return JsonResponse({'code': 1, 'msg': '服务器出错啦，请稍后再试'})
 
 
 def create_wx_user(request):
@@ -115,24 +112,93 @@ def create_wx_user(request):
         # 空格判断
         wx_info = json.loads(res)
         wx_user_info = wx_info['user_info']
-        if UserWx.objects.filter(avatar_url=wx_user_info['avatarUrl']):
-            json_template['code'] = 96
-            json_template['errMessage'] = '用户已存在，无需重复添加'
-        else:
-            wx_user = {
-                'nick_name': wx_user_info['nickName'],
-                'gender': wx_user_info['gender'],
-                'avatar_url': wx_user_info['avatarUrl'],
-                'city': wx_user_info['city'],
-                'province': wx_user_info['province'],
-                'country': wx_user_info['country']
-            }
-            user_wx = UserWx(**wx_user)
-            user_wx.save()
-            json_template['code'] = 0
-            json_template['errMessage'] = '添加成功'
+        open_id = wx_info['open_id']
+        wx_user = {
+            'nick_name': wx_user_info['nickName'],
+            'gender': wx_user_info['gender'],
+            'avatar_url': wx_user_info['avatarUrl'],
+            'city': wx_user_info['city'],
+            'province': wx_user_info['province'],
+            'country': wx_user_info['country']
+        }
+        UserWx.objects.update_or_create(wx_user, open_id=open_id)
+        json_template['code'] = 0
+        json_template['errMessage'] = '添加成功'
         return JsonResponse(json_template)
     except Exception as e:
         logger.error(str(e))
         json_template['errMessage'] = str(e)
         return JsonResponse(json_template)
+
+
+def on_login(request):
+    json_template = {}
+    code = request.GET.get('code')
+    url = f'https://api.weixin.qq.com/sns/jscode2session?appid=wx2d8e4398af2b8906&' \
+          f'secret=60b344d201b019aaab7b4e6c137115f1&js_code={code}&grant_type=authorization_code'
+    try:
+        res = requests.get(url)
+        res_data = json.loads(res.text)
+        UserWx.objects.update_or_create({'open_id': res_data['openid']}, open_id=res_data['openid'])
+        json_template['code'] = 0
+        json_template['openid'] = res_data['openid']
+    except Exception as e:
+        logger.error(f'create user error: {e}')
+        json_template['code'] = 401
+    return JsonResponse(json_template)
+
+
+def get_user_comments(request):
+    json_template = {'code': 0}
+    comments_data = []
+    comments_all = UserComments.objects.all().order_by('-id')
+    for comment in comments_all:
+        data = {'data': {'comment_id': comment.id,
+                         'username': comment.user_wx.nick_name,
+                         'avatar': comment.user_wx.avatar_url,
+                         'txt': comment.txt,
+                         'top_comment': comment.top_comment}}
+        leave_messages = LeaveMessage.objects.filter(user_comments=comment)
+        message_list = []
+        if leave_messages:
+            for leave_message in leave_messages:
+                message_list.append({'username': leave_message.user_wx.nick_name,
+                                     'comment': leave_message.message})
+        data['leaveMessage'] = message_list
+        if comment.top_comment:
+            comments_data.insert(0, data)
+        else:
+            comments_data.append(data)
+
+    json_template['comments'] = comments_data
+
+    return JsonResponse(json_template)
+
+
+def insert_user_comment(request):
+    json_template = {'code': 0}
+    res = request.body
+    comment_info = json.loads(res)
+    txt = comment_info['txt']
+    open_id = comment_info['open_id']
+    if open_id:
+        user_wx_obj = UserWx.objects.filter(open_id=open_id)
+        UserComments.objects.create(user_wx=user_wx_obj[0], txt=txt)
+        json_template['success'] = 'success'
+    else:
+        json_template['code'] = 1
+    return JsonResponse(json_template)
+
+
+def create_leave_message(request):
+    json_template = {'code': 0}
+    res = request.body
+    message_info = json.loads(res)
+    message = message_info['message']
+    user_comment = UserComments.objects.filter(id=message_info['comment_id'])
+    user_wx_obj = UserWx.objects.filter(open_id=message_info['open_id'])
+    if user_comment and user_wx_obj:
+        LeaveMessage.objects.create(user_wx=user_wx_obj[0], message=message, user_comments=user_comment[0])
+    else:
+        json_template['code'] = 1
+    return JsonResponse(json_template)

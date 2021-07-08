@@ -1,8 +1,10 @@
 from django.contrib import admin
-from birth.models import UserWx, UserWxAdmin, UserDetailInfo, UserDetailInfoAdmin
+import birth.models as models
 
 
-admin.site.register(UserWx, UserWxAdmin)
-admin.site.register(UserDetailInfo, UserDetailInfoAdmin)
+admin.site.register(models.UserWx, models.UserWxAdmin)
+admin.site.register(models.UserDetailInfo, models.UserDetailInfoAdmin)
+admin.site.register(models.UserComments, models.UserCommentsAdmin)
+admin.site.register(models.LeaveMessage, models.LeaveMessageAdmin)
 
 # Register your models here.
