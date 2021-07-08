@@ -85,7 +85,7 @@ class LeaveMessage(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return self.txt
+        return self.message
 
 
 class LeaveMessageAdmin(admin.ModelAdmin):
