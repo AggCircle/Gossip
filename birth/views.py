@@ -150,27 +150,30 @@ def on_login(request):
 
 def get_user_comments(request):
     json_template = {'code': 0}
+    open_id = request.GET.get('open_id')
     comments_data = []
-    comments_all = UserComments.objects.all().order_by('-id')
-    for comment in comments_all:
-        data = {'data': {'comment_id': comment.id,
-                         'username': comment.user_wx.nick_name,
-                         'avatar': comment.user_wx.avatar_url,
-                         'txt': comment.txt,
-                         'top_comment': comment.top_comment}}
-        leave_messages = LeaveMessage.objects.filter(user_comments=comment)
-        message_list = []
-        if leave_messages:
-            for leave_message in leave_messages:
-                message_list.append({'username': leave_message.user_wx.nick_name,
-                                     'comment': leave_message.message})
-        data['leaveMessage'] = message_list
-        if comment.top_comment:
-            comments_data.insert(0, data)
-        else:
-            comments_data.append(data)
+    user_wx = UserWx.objects.filter(open_id=open_id)
+    if user_wx:
+        comments_all = UserComments.objects.filter(user_wx=user_wx[0]).order_by('-id')
+        for comment in comments_all:
+            data = {'data': {'comment_id': comment.id,
+                             'username': comment.user_wx.nick_name,
+                             'avatar': comment.user_wx.avatar_url,
+                             'txt': comment.txt,
+                             'top_comment': comment.top_comment}}
+            leave_messages = LeaveMessage.objects.filter(user_comments=comment)
+            message_list = []
+            if leave_messages:
+                for leave_message in leave_messages:
+                    message_list.append({'username': leave_message.user_wx.nick_name,
+                                         'comment': leave_message.message})
+            data['leaveMessage'] = message_list
+            if comment.top_comment:
+                comments_data.insert(0, data)
+            else:
+                comments_data.append(data)
 
-    json_template['comments'] = comments_data
+        json_template['comments'] = comments_data
 
     return JsonResponse(json_template)
 
