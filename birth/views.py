@@ -4,6 +4,7 @@ import logging
 import requests
 
 import concurrent.futures as my_futures
+from django.core.cache import cache
 from django.db.models import Q
 from django.http import JsonResponse
 
@@ -14,7 +15,7 @@ logger = logging.getLogger("server_logger")
 executor = my_futures.ThreadPoolExecutor(max_workers=5)
 
 
-ten_heavenly = {1: '甲', 2: '乙', 3: '丙', 4: '丁', 5: '戊', 6: '己', 7: '庚', 8: '辛', 9: '壬', 10: '癸'}
+ten_heavenly = {0: '癸', 1: '甲', 2: '乙', 3: '丙', 4: '丁', 5: '戊', 6: '己', 7: '庚', 8: '辛', 9: '壬', 10: '癸'}
 terrestrial_branch = {1: '子', 2: '丑', 3: '寅', 4: '卯', 5: '辰', 6: '巳', 7: '午', 8: '未', 9: '申', 10: '酉', 11: '戌', 12: '亥'}
 branch_num = {'子': 1, '丑': 2, '寅': 3, '卯': 4, '辰': 5, '巳': 6, '午': 7, '未': 8, '申': 9, '酉': 10, '戌': 11, '亥': 12}
 heavenly_num = {'甲': 1, '乙': 2, '丙': 3, '丁': 4, '戊': 5, '己': 6, '庚': 7, '辛': 8, '壬': 9, '癸': 10}
@@ -74,6 +75,7 @@ def insert_birth(user_info):
 
 def get_eight_characters(request):
     birth = request.GET.get('birth')  # 生日datetime类型 ‘1991-10-21 21:14:04’
+    cache_key = birth.replace(' ', '_')
     user_info = request.GET.get('user_info') or '{}'
     user_info = json.loads(user_info)
     open_id = request.GET.get('open_id')
@@ -85,7 +87,9 @@ def get_eight_characters(request):
     hour = birth_datetime.hour
     date = birth.split(' ')[0].replace('-', '')
     try:
-        executor.submit(insert_birth, user_info)
+        eight_characters = cache.get(cache_key)
+        if eight_characters:
+            return JsonResponse({'code': 0, 'msg': 'success', 'data': json.loads(eight_characters)})
         res = requests.get(f'http://tools.2345.com/frame/api/GetLunarInfo?date={date}')
         res_dic = json.loads(res.text)
         suici = res_dic['html']['suici']
@@ -99,6 +103,8 @@ def get_eight_characters(request):
                 'rg': sz[6],
                 'ny': ny_wx[suici[:2]],
                 'analyse': analyse}
+        cache.set(cache_key, json.dumps(data))
+        executor.submit(insert_birth, user_info)
         return JsonResponse({'code': 0, 'msg': 'success', 'data': data})
     except Exception as e:
         logger.error(f'Get calendar error: {e}')

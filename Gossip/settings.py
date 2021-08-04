@@ -82,6 +82,16 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache_table',  # 缓存表名
+        'TIMEOUT': 60,  # 默认情况下缓存键永不过时
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000  # 删除旧值之前允许缓存的最大条目。默认是 300
+        }
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
