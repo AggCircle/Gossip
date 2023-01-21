@@ -10,7 +10,7 @@ class UserWx(models.Model):
     id = models.AutoField(primary_key=True)
     create_time = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
     open_id = models.CharField(verbose_name="腾讯用户唯一识别码", max_length=40, default='')
-    nick_name = models.CharField(verbose_name="昵称", max_length=100, null=True)
+    nick_name = models.CharField(verbose_name="昵称", max_length=100, null=True, default='Unknown')
     gender = models.CharField(verbose_name="性别", max_length=1, null=True, choices=SEX_CHOICE)
     avatar_url = models.CharField(verbose_name="头像", max_length=300, null=True)
     city = models.CharField(verbose_name="城市", max_length=30, null=True)

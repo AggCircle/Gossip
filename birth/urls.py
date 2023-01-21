@@ -8,4 +8,5 @@ urlpatterns = [
     path('get_user_comments', views.get_user_comments, name="get_user_comments"),
     path('insert_user_comment', views.insert_user_comment, name="insert_user_comment"),
     path('create_leave_message', views.create_leave_message, name="create_leave_message"),
+    path('avoid_star', views.avoid_star, name="avoid_star"),
 ]
